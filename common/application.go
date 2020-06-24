@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"os/user"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -79,6 +80,9 @@ func (application *Application) GetInstances(slog *zap.SugaredLogger, conf *conf
 				applicationFound = true
 				applicationAlias = applicationS.Alias
 				break
+			} else if matched, err := regexp.MatchString(applicationS.Regexp, application.Name); strings.Compare(applicationS.Regexp, "") != 0 && matched && err == nil {
+				applicationFound = true
+				break
 			}
 		}
 		for _, cEnvironment := range entry.Environments {
@@ -122,7 +126,9 @@ func (application *Application) GetInstances(slog *zap.SugaredLogger, conf *conf
 	}
 
 	if len(application.SuccessfulInstances) == 0 {
-		return errors.New(application.Name + ": no successful instance found")
+		err := errors.New(application.Name + ": no successful instance found")
+		application.Errors = append(application.Errors, &Error{Message: err.Error()})
+		return err
 	}
 	return nil
 }

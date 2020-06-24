@@ -15,3 +15,10 @@
     - staging
   template: http-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
   instances: 2
+
+- applications:
+    - regexp: srv-.*
+  environments:
+    - staging
+  template: srv-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+  instances: 1

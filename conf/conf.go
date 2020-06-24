@@ -37,8 +37,9 @@ type ConfigEntry struct {
 }
 
 type Application struct {
-	Name  string  `yaml:name`
-	Alias *string `yaml:user,omitempty`
+	Regexp string  `yaml:regexp`
+	Name   string  `yaml:name`
+	Alias  *string `yaml:user,omitempty`
 }
 
 func LoadConfig() *Config {
