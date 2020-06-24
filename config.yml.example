@@ -1,0 +1,17 @@
+- applications:
+    - name: app1
+  environments:
+    - production
+    - staging
+  template: app-{{ .Application }}-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+  instances: 2
+
+- applications:
+    - name: frontend1
+      alias: frontend-alias
+    - name: frontend2
+  environments:
+    - production
+    - staging
+  template: http-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+  instances: 2
