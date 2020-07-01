@@ -94,12 +94,17 @@ func (application *Application) GetInstances(slog *zap.SugaredLogger, conf *conf
 
 		if applicationFound && environmentFound {
 			for i := 1; i <= entry.Instances; i++ {
+				instanceNumber := i
+				if entry.ReverseOrder {
+					instanceNumber = entry.Instances - (i - 1)
+				}
+
 				t := template.Must(template.New("instance").Parse(entry.Template))
 				var instance bytes.Buffer
 				if applicationAlias == nil {
-					t.Execute(&instance, &templateData{Application: application.Name, Environment: environment, InstanceNumber: i})
+					t.Execute(&instance, &templateData{Application: application.Name, Environment: environment, InstanceNumber: instanceNumber})
 				} else {
-					t.Execute(&instance, &templateData{Application: *applicationAlias, Environment: environment, InstanceNumber: i})
+					t.Execute(&instance, &templateData{Application: *applicationAlias, Environment: environment, InstanceNumber: instanceNumber})
 				}
 
 				if dns.Check(instance.String()) {

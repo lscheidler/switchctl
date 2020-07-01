@@ -15,6 +15,7 @@
     - staging
   template: http-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
   instances: 2
+  reverseInstanceOrder: true
 
 - applications:
     - regexp: srv-.*
