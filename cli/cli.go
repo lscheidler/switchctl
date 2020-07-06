@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	version = "0.3"
+	version = "0.4"
 
 	applicationUsage   = "set application to switch"
 	debugUsage         = "debug mode"
