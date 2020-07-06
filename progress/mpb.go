@@ -34,12 +34,14 @@ type Progress struct {
 	FailedApplications        []*common.Application
 	SuccessfulApplications    []*common.Application
 	colorizeInstanceCompleted func(string, bool) string
+	workers                   int
 }
 
-func New(slog *zap.SugaredLogger, colorizeInstanceCompleted func(string, bool) string) *Progress {
+func New(slog *zap.SugaredLogger, workers int, colorizeInstanceCompleted func(string, bool) string) *Progress {
 	return &Progress{
 		slog:                      slog,
 		colorizeInstanceCompleted: colorizeInstanceCompleted,
+		workers:                   workers,
 	}
 }
 
@@ -63,16 +65,21 @@ func (progress *Progress) Load(args *cli.Arguments, config *conf.Config) {
 		mpb.BarRemoveOnComplete(),
 	)
 
+	wp := NewWorkerPool(progress.workers)
 	for _, application := range []*common.Application(args.Applications) {
 		progress.slog.Debug("Loading application ", application.Name)
 
-		go progress.loadApplication(&wg, bar, application, config, args, &successMutex, &failMutex)
+		//go progress.loadApplication(&wg, bar, application, config, args, &successMutex, &failMutex)
+		go progress.loadApplication(wp, &wg, bar, application, config, args, &successMutex, &failMutex)
 	}
 	p.Wait()
+	wp.Close()
 }
 
-func (progress *Progress) loadApplication(wg *sync.WaitGroup, bar *mpb.Bar, application *common.Application, config *conf.Config, args *cli.Arguments, successMutex *sync.Mutex, failMutex *sync.Mutex) {
+func (progress *Progress) loadApplication(wp *WorkerPool, wg *sync.WaitGroup, bar *mpb.Bar, application *common.Application, config *conf.Config, args *cli.Arguments, successMutex *sync.Mutex, failMutex *sync.Mutex) {
 	defer wg.Done()
+	defer wp.Done()
+	wp.Add()
 
 	start := time.Now()
 	if err := application.Load(progress.slog, config, args.Environment, args.Dryrun); err != nil {
@@ -91,6 +98,7 @@ func (progress *Progress) loadApplication(wg *sync.WaitGroup, bar *mpb.Bar, appl
 func (progress *Progress) SwitchApplications() {
 	var doneWg sync.WaitGroup
 	p := mpb.New(mpb.WithWidth(1), mpb.WithWaitGroup(&doneWg))
+	wp := NewWorkerPool(progress.workers)
 
 	failed := []*bool{}
 
@@ -122,7 +130,7 @@ func (progress *Progress) SwitchApplications() {
 		)
 		bars = append(bars, b)
 
-		go progress.switchApplication(&applicationFailed, &wg, &instanceChan, b, application)
+		go progress.switchApplication(&applicationFailed, wp, &wg, &instanceChan, b, application)
 	}
 	exitCode := 0
 	for i, _ := range progress.SuccessfulApplications {
@@ -133,12 +141,15 @@ func (progress *Progress) SwitchApplications() {
 		}
 	}
 	p.Wait()
+	wp.Close()
 
 	os.Exit(exitCode)
 }
 
-func (progress *Progress) switchApplication(failed *bool, wg *sync.WaitGroup, instanceChan *chan int, bar *mpb.Bar, application *common.Application) {
+func (progress *Progress) switchApplication(failed *bool, wp *WorkerPool, wg *sync.WaitGroup, instanceChan *chan int, bar *mpb.Bar, application *common.Application) {
 	defer wg.Done()
+	defer wp.Done()
+	wp.Add()
 
 	start := time.Now()
 	for _, instance := range application.SuccessfulInstances {

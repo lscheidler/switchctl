@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/agtorre/gocolorize"
 	"go.uber.org/zap"
@@ -44,7 +45,7 @@ func main() {
 	cred := gocolorize.Colorize{Fg: gocolorize.Red}
 
 	defer args.Applications.Close()
-	p := progress.New(slog, colorizeInstanceCompleted)
+	p := progress.New(slog, args.Workers, colorizeInstanceCompleted)
 	p.Load(args, config)
 
 	printApplicationInformation(p)
@@ -69,7 +70,7 @@ func main() {
 }
 
 func openLog(args *cli.Arguments) {
-	os.Mkdir("logs/", 0755)
+	os.Mkdir(filepath.Dir(args.Logfile), 0755)
 
 	config := zap.NewProductionConfig()
 	config.EncoderConfig = zap.NewProductionEncoderConfig()
@@ -78,7 +79,7 @@ func openLog(args *cli.Arguments) {
 	if args.Debug {
 		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	}
-	config.OutputPaths = []string{"logs/switchctl.log"}
+	config.OutputPaths = []string{args.Logfile}
 
 	logOption := zap.AddCaller()
 	logger, err := config.Build(logOption)

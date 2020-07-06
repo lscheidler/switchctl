@@ -3,8 +3,9 @@
   environments:
     - production
     - staging
-  template: app-{{ .Application }}-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
-  instances: 2
+  instances:
+    - template: app-{{ .Application }}-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+      instances: 2
 
 - applications:
     - name: frontend1
@@ -13,13 +14,25 @@
   environments:
     - production
     - staging
-  template: http-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
-  instances: 2
-  reverseInstanceOrder: true
+  instances:
+    - template: http-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+      instances: 2
+      reverseInstanceOrder: true
 
 - applications:
     - regexp: srv-.*
   environments:
     - staging
-  template: srv-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
-  instances: 1
+  instances:
+    - template: srv-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+      instances: 1
+
+- applications:
+    - regexp: (?P<app>.*)-docs
+  environments:
+    - staging
+  instances:
+    - template: srv-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+      instances: 1
+    - template: app-{{ .SubexpNames.app }}-{{ .InstanceNumber }}.{{ .Environment }}.<domain>
+      instances: 1

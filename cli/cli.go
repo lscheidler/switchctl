@@ -29,17 +29,23 @@ const (
 	applicationUsage   = "set application to switch"
 	debugUsage         = "debug mode"
 	debugDefault       = false
-	environmentDefault = "production"
-	environmentUsage   = "set environment to use"
 	dryrunDefault      = false
 	dryrunUsage        = "do not execute switch"
+	environmentDefault = "production"
+	environmentUsage   = "set environment to use"
+	logfileDefault     = "logs/switchctl.log"
+	logfileUsage       = "logfile path"
+	workersDefault     = 5
+	workersUsage       = "number of workers run simultaneously"
 )
 
 type Arguments struct {
 	Applications common.Applications
-	Environment  string
 	Debug        bool
 	Dryrun       bool
+	Environment  string
+	Logfile      string
+	Workers      int
 }
 
 func ParseArguments() *Arguments {
@@ -58,6 +64,10 @@ func ParseArguments() *Arguments {
 	flag.BoolVar(&args.Debug, "d", debugDefault, debugUsage)
 	flag.BoolVar(&args.Dryrun, "dryrun", dryrunDefault, dryrunUsage)
 	flag.BoolVar(&args.Dryrun, "n", dryrunDefault, dryrunUsage)
+	flag.StringVar(&args.Logfile, "logfile", logfileDefault, logfileUsage)
+	flag.StringVar(&args.Logfile, "l", logfileDefault, logfileUsage)
+	flag.IntVar(&args.Workers, "workers", workersDefault, workersUsage)
+	flag.IntVar(&args.Workers, "w", workersDefault, workersUsage)
 
 	flag.Parse()
 

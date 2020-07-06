@@ -72,7 +72,10 @@ func (application *Application) GetInstances(slog *zap.SugaredLogger, conf *conf
 		applicationFound := false
 		environmentFound := false
 
+		subexpNames := map[string]string{}
 		for _, applicationS := range entry.Applications {
+			applicationRegexp := regexp.MustCompile(applicationS.Regexp)
+
 			if application.Name == applicationS.Name {
 				applicationFound = true
 				break
@@ -80,8 +83,13 @@ func (application *Application) GetInstances(slog *zap.SugaredLogger, conf *conf
 				applicationFound = true
 				applicationAlias = applicationS.Alias
 				break
-			} else if matched, err := regexp.MatchString(applicationS.Regexp, application.Name); strings.Compare(applicationS.Regexp, "") != 0 && matched && err == nil {
+			} else if matched := applicationRegexp.MatchString(application.Name); strings.Compare(applicationS.Regexp, "") != 0 && matched {
 				applicationFound = true
+				for _, name := range applicationRegexp.SubexpNames() {
+					if name != "" {
+						subexpNames[name] = applicationRegexp.ReplaceAllString(application.Name, fmt.Sprintf("${%s}", name))
+					}
+				}
 				break
 			}
 		}
@@ -93,22 +101,24 @@ func (application *Application) GetInstances(slog *zap.SugaredLogger, conf *conf
 		}
 
 		if applicationFound && environmentFound {
-			for i := 1; i <= entry.Instances; i++ {
-				instanceNumber := i
-				if entry.ReverseOrder {
-					instanceNumber = entry.Instances - (i - 1)
-				}
+			for _, instance := range entry.Instances {
+				for i := 1; i <= instance.NumberOfInstances; i++ {
+					instanceNumber := i
+					if instance.ReverseOrder {
+						instanceNumber = instance.NumberOfInstances - (i - 1)
+					}
 
-				t := template.Must(template.New("instance").Parse(entry.Template))
-				var instance bytes.Buffer
-				if applicationAlias == nil {
-					t.Execute(&instance, &templateData{Application: application.Name, Environment: environment, InstanceNumber: instanceNumber})
-				} else {
-					t.Execute(&instance, &templateData{Application: *applicationAlias, Environment: environment, InstanceNumber: instanceNumber})
-				}
+					t := template.Must(template.New("instance").Parse(instance.Template))
+					var instance bytes.Buffer
+					if applicationAlias == nil {
+						t.Execute(&instance, &templateData{Application: application.Name, Environment: environment, InstanceNumber: instanceNumber, SubexpNames: subexpNames})
+					} else {
+						t.Execute(&instance, &templateData{Application: *applicationAlias, Environment: environment, InstanceNumber: instanceNumber, SubexpNames: subexpNames})
+					}
 
-				if dns.Check(instance.String()) {
-					application.SuccessfulInstances = append(application.SuccessfulInstances, NewInstance(slog, instance.String(), "22", getUsername(), dryrun))
+					if dns.Check(instance.String()) {
+						application.SuccessfulInstances = append(application.SuccessfulInstances, NewInstance(slog, instance.String(), "22", getUsername(), dryrun))
+					}
 				}
 			}
 		}
@@ -203,6 +213,7 @@ type templateData struct {
 	Application    string
 	Environment    string
 	InstanceNumber int
+	SubexpNames    map[string]string
 }
 
 func getUsername() string {

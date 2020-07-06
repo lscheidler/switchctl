@@ -1,3 +1,11 @@
+0.4 (2020-07-06)
+================
+
+- added workers to limit concurrent queries
+- added support for SubexpNames
+- changed config format to support multiple instance templates
+- added logfile argument to set different logfile location
+
 0.3 (2020-07-01)
 ================
 

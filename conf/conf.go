@@ -32,9 +32,13 @@ type Config struct {
 type ConfigEntry struct {
 	Applications []Application `yaml:applications`
 	Environments []string      `yaml:environments`
-	Template     string        `yaml:template`
-	Instances    int           `yaml:instances`
-	ReverseOrder bool          `yaml:"reverseInstanceOrder"`
+	Instances    []Instance    `yaml:instances`
+}
+
+type Instance struct {
+	NumberOfInstances int    `yaml:"numberOfInstances"`
+	Template          string `yaml:template`
+	ReverseOrder      bool   `yaml:"reverseInstanceOrder"`
 }
 
 type Application struct {
